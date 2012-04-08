@@ -4,7 +4,7 @@ use ieee.numeric_std.all;
 
 
 entity simple_alu is
-port(   Clk : in std_logic; --clock signal
+port(   clock : in std_logic; --clock signal
         A,B : in signed(15 downto 0); --input operands
         Op : in unsigned(3 downto 0); --Operation to be performed
         zero,carry,overflow,negative,equal,nequal,gt,lt:out bit;
@@ -20,16 +20,18 @@ signal Reg5 : signed(16 downto 0) := (others => '0');
 signal Reg4: unsigned (3 downto 0) := (others => '0');
 signal RReg :std_logic_vector(16 downto 0);
 signal zeros : signed (15 downto 0) := (others => '0');
+signal Clk: std_logic; 
+
 begin
 
 Reg1 <= A;
 Reg2 <= B;
---R <= Reg3;
+Clk <=clock;
 Reg4<=op;
-process(Clk)
+process(Clk,A,B,Op)
 begin
 
-    if(rising_edge(Clk)) then --Do the calculation at the positive edge of clock cycle.
+    if(Clk='1') then --Do the calculation at the positive edge of clock cycle.
         case Op is
             when "0000" => 
                 Reg5 <= Reg1 + Reg2;  --addition
@@ -47,23 +49,22 @@ begin
                 
             when "0001" => 
                 Reg5 <= Reg1 - Reg2; --subtraction
-                
+                R <=Reg5(15 downto 0);
                 if (Reg5(16)='1')then
                   carry <='1';
                 end if;
-                if((Reg1(15)='0')and (Reg2(15)='0')and (Reg5(15)='1'))then
-                  	overflow<='1';
-      
-                elsif((Reg1(15)='1')and (Reg2(15)='1')and (Reg5(15)='0'))then
-                  overflow<='1';
+                Reg3 <= Reg2-Reg1;
+                Reg3 <= not(Reg3)+1;
+                if(Reg3/=Reg5(15 downto 0))then
+                  overflow <='1';
                 end if;
                 
             when "0010" => 
-                Reg5 <= Reg1 or Reg2;  --OR gate 
+                R <= Reg1 or Reg2;  --OR gate 
             when "0011" => 
-                Reg5 <= Reg1 and Reg2;  --AND gate
+                R <= Reg1 and Reg2;  --AND gate
             when "0100" => 
-                Reg5 <= Reg1 xor Reg2; --XOR gate     
+                R <= Reg1 xor Reg2; --XOR gate     
             when "1000" =>
               Reg3<=Reg1-Reg2;
               if(Reg3(15)='0')then
@@ -96,12 +97,26 @@ begin
                 gt<='0';
                 lt<='1';
               end if; 
-              
+              when "0101" =>
+                R <= Reg1 sll 1;
+              when "0110" =>
+                R <= Reg1 srl 1;
+                
             when others =>
                 NULL;
         end case;       
     end if;
     
 end process;    
+process
+    
+    begin
+      
+      wait for 10ns;
+      Reg1<="0000000000000010";
+      Reg2<="0000000000000100";
+      Clk <='1';
+      
+  end process;
 
 end Behavioral;
